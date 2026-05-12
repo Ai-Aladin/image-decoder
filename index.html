@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Image Decoder</title>
 
 <style>
@@ -12,19 +11,19 @@ box-sizing:border-box;
 }
 
 body{
-font-family:Arial,sans-serif;
-background:#f2f2f2;
 margin:0;
 padding:20px;
+font-family:Arial,sans-serif;
+background:#f3f4f6;
 }
 
 .container{
 max-width:900px;
 margin:auto;
 background:white;
-padding:20px;
+padding:25px;
 border-radius:20px;
-box-shadow:0 0 15px rgba(0,0,0,.15);
+box-shadow:0 0 20px rgba(0,0,0,.12);
 }
 
 h1{
@@ -32,25 +31,27 @@ text-align:center;
 margin-bottom:10px;
 }
 
-p{
+.description{
 text-align:center;
-font-size:16px;
+color:#555;
+margin-bottom:20px;
 }
 
 textarea{
 width:100%;
-height:260px;
+height:220px;
 padding:12px;
+font-size:14px;
 border-radius:12px;
 border:1px solid #ccc;
-font-size:14px;
 resize:vertical;
+outline:none;
 }
 
 .buttons{
 display:flex;
-gap:10px;
 flex-wrap:wrap;
+gap:10px;
 margin-top:15px;
 }
 
@@ -58,27 +59,28 @@ button{
 border:none;
 padding:12px 18px;
 border-radius:10px;
-font-size:16px;
+font-size:15px;
 cursor:pointer;
+font-weight:bold;
 }
 
 .upload{
-background:#ff9800;
+background:#f59e0b;
 color:white;
 }
 
 .decode{
-background:#28a745;
+background:#22c55e;
 color:white;
 }
 
 .save{
-background:#007bff;
+background:#2563eb;
 color:white;
 }
 
 .clear{
-background:#dc3545;
+background:#ef4444;
 color:white;
 }
 
@@ -95,23 +97,24 @@ text-align:center;
 
 #preview img{
 max-width:100%;
-border-radius:12px;
+border-radius:14px;
 border:2px solid #ddd;
 }
 </style>
 </head>
-
 <body>
 
 <div class="container">
 
-<h1>🖼️ Image Decoder</h1>
+<h1>Image Decoder</h1>
 
-<p>কোড Paste করুন অথবা TXT File Upload করুন</p>
+<p class="description">
+Upload a TXT file or paste image code to decode an image
+</p>
 
 <textarea
 id="codeBox"
-placeholder="এখানে code paste করুন..."
+placeholder="Paste image code here..."
 ></textarea>
 
 <div class="buttons">
@@ -121,27 +124,27 @@ type="file"
 id="fileInput"
 accept=".txt"
 style="display:none"
-/>
+>
 
 <button
 class="upload"
 onclick="document.getElementById('fileInput').click()"
 >
-TXT File খুলুন
+Upload TXT File
 </button>
 
 <button
 class="decode"
 onclick="decodeImage()"
 >
-Decode করুন
+Decode Image
 </button>
 
 <button
 class="save"
 onclick="saveImage()"
 >
-ছবি Save করুন
+Save Image
 </button>
 
 <button
@@ -161,6 +164,7 @@ Clear
 
 <script>
 
+let currentImageBlob = null;
 let currentImageURL = null;
 
 document
@@ -169,36 +173,32 @@ document
 
 const file = e.target.files[0];
 
-if(!file) return;
+if(!file){
+return;
+}
 
 const reader = new FileReader();
 
 reader.onload = function(event){
 
-document
-.getElementById("codeBox")
-.value = event.target.result;
+window.uploadedBinary =
+new Uint8Array(event.target.result);
 
 showMessage(
-"TXT file load হয়েছে",
+"TXT file loaded successfully",
 "green"
 );
 
 };
 
-reader.readAsText(
-file,
-"latin1"
-);
+reader.readAsArrayBuffer(file);
 
 });
 
 function showMessage(text,color){
 
 const msg =
-document.getElementById(
-"message"
-);
+document.getElementById("message");
 
 msg.innerText = text;
 msg.style.color = color;
@@ -207,109 +207,37 @@ msg.style.color = color;
 
 function decodeImage(){
 
-const rawText =
-document
-.getElementById(
-"codeBox"
-)
-.value;
-
-if(!rawText.trim()){
-
-showMessage(
-"আগে code paste করুন",
-"red"
-);
-
-return;
-
-}
-
 try{
 
-let imageURL = null;
+let imageBlob = null;
 
-/* Base64 detect */
+/* FILE MODE */
 
-const cleaned =
-rawText.trim();
+if(window.uploadedBinary){
 
-if(
-cleaned.includes("base64,")
-||
-/^[A-Za-z0-9+/=\s]+$/
-.test(cleaned)
-){
-
-let b64 = cleaned;
-
-if(
-b64.includes(
-"base64,"
-)
-){
-b64 =
-b64.split(
-"base64,"
-)[1];
-}
-
-b64 =
-b64.replace(
-/\s/g,
-""
-);
-
-imageURL =
-"data:image/jpeg;base64," +
-b64;
-
-}
-
-/* Raw JPEG detect */
-
-if(!imageURL){
-
-const bytes = [];
-
-for(
-let i=0;
-i<rawText.length;
-i++
-){
-
-bytes.push(
-rawText.charCodeAt(i)
-& 0xff
-);
-
-}
+const bytes =
+window.uploadedBinary;
 
 let start = -1;
 let end = -1;
 
-for(
-let i=0;
-i<bytes.length-1;
-i++
-){
+/* JPEG */
+
+for(let i=0;i<bytes.length-1;i++){
 
 if(
 bytes[i]===255
 &&
 bytes[i+1]===216
 ){
-
-start = i;
+start=i;
 break;
-
 }
 
 }
 
 for(
-let i=
-bytes.length-2;
+let i=bytes.length-2;
 i>=0;
 i--
 ){
@@ -319,29 +247,22 @@ bytes[i]===255
 &&
 bytes[i+1]===217
 ){
-
-end = i+2;
+end=i+2;
 break;
-
 }
 
 }
 
 if(
-start !== -1
+start!==-1
 &&
-end !== -1
+end!==-1
 ){
 
 const imgBytes =
-new Uint8Array(
-bytes.slice(
-start,
-end
-)
-);
+bytes.slice(start,end);
 
-const blob =
+imageBlob =
 new Blob(
 [imgBytes],
 {
@@ -349,19 +270,26 @@ type:"image/jpeg"
 }
 );
 
-imageURL =
-URL.createObjectURL(
-blob
-);
-
 }
 
 }
 
-if(!imageURL){
+/* PASTE MODE */
+
+if(!imageBlob){
+
+const raw =
+document
+.getElementById(
+"codeBox"
+)
+.value
+.trim();
+
+if(!raw){
 
 showMessage(
-"ছবির code পাওয়া যায়নি",
+"Please upload a TXT file or paste image code",
 "red"
 );
 
@@ -369,24 +297,76 @@ return;
 
 }
 
+let cleaned = raw;
+
+if(cleaned.includes("base64,")){
+
+cleaned =
+cleaned.split(
+"base64,"
+)[1];
+
+}
+
+cleaned =
+cleaned.replace(
+/\s/g,
+""
+);
+
+currentImageURL =
+"data:image/jpeg;base64," +
+cleaned;
+
+renderImage(
+currentImageURL
+);
+
+return;
+
+}
+
+currentImageBlob =
+imageBlob;
+
+currentImageURL =
+URL.createObjectURL(
+imageBlob
+);
+
+renderImage(
+currentImageURL
+);
+
+}
+catch(error){
+
+showMessage(
+"Image decoding failed",
+"red"
+);
+
+}
+
+}
+
+function renderImage(url){
+
 const img =
 new Image();
 
 img.onload =
 function(){
 
-currentImageURL =
-imageURL;
-
 document
 .getElementById(
 "preview"
 )
 .innerHTML =
-`<img src="${imageURL}">`;
+`<img src="${url}">`;
 
 showMessage(
-"ছবি সফলভাবে decode হয়েছে",
+"Image decoded successfully",
 "green"
 );
 
@@ -396,35 +376,23 @@ img.onerror =
 function(){
 
 showMessage(
-"Valid image পাওয়া যায়নি",
+"Invalid image code or file",
 "red"
 );
 
 };
 
 img.src =
-imageURL;
-
-}
-catch(error){
-
-showMessage(
-"Decode failed",
-"red"
-);
-
-}
+url;
 
 }
 
 function saveImage(){
 
-if(
-!currentImageURL
-){
+if(!currentImageURL){
 
 showMessage(
-"আগে image decode করুন",
+"Please decode an image first",
 "red"
 );
 
@@ -453,19 +421,25 @@ document
 .getElementById(
 "codeBox"
 )
-.value = "";
+.value="";
 
 document
 .getElementById(
 "preview"
 )
-.innerHTML = "";
+.innerHTML="";
 
 document
 .getElementById(
 "message"
 )
-.innerHTML = "";
+.innerHTML="";
+
+window.uploadedBinary =
+null;
+
+currentImageBlob =
+null;
 
 currentImageURL =
 null;
