@@ -1,1 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Decoder</title>
 
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 0 10px rgba(0,0,0,.15);
+}
+
+h1{
+    text-align:center;
+}
+
+textarea{
+    width:100%;
+    height:250px;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    resize:vertical;
+    font-size:14px;
+}
+
+.buttons{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:15px;
+}
+
+button{
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.decode{
+    background:#28a745;
+    color:white;
+}
+
+.clear{
+    background:#dc3545;
+    color:white;
+}
+
+.save{
+    background:#007bff;
+    color:white;
+}
+
+.upload{
+    background:#ff9800;
+    color:white;
+}
+
+#preview{
+    margin-top:25px;
+    text-align:center;
+}
+
+#preview img{
+    max-width:100%;
+    border-radius:10px;
+    border:2px solid #ddd;
+}
+
+.message{
+    margin-top:15px;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Image Decoder</h1>
+
+<p>
+কোড paste করুন অথবা TXT file upload করুন
+</p>
+
+<textarea id="codeBox"
+placeholder="Paste your image code here..."></textarea>
+
+<div class="buttons">
+
+<input
+type="file"
+id="fileInput"
+accept=".txt"
+style="display:none"
+>
+
+<button class="upload"
+onclick="document.getElementById('fileInput').click()">
+Open TXT File
+</button>
+
+<button class="decode"
+onclick="decodeImage()">
+Decode Image
+</button>
+
+<button class="save"
+onclick="downloadImage()">
+Save Image
+</button>
+
+<button class="clear"
+onclick="clearAll()">
+Clear
+</button>
+
+</div>
+
+<div class="message" id="message"></div>
+
+<div id="preview"></div>
+
+</div>
+
+<script>
+
+let decodedImage = null;
+
+document.getElementById('fileInput')
+.addEventListener('change', function(e){
+
+const file = e.target.files[0];
+if(!file) return;
+
+const reader = new FileReader();
+
+reader.onload = function(event){
+document.getElementById('codeBox')
+.value = event.target.result;
+};
+
+reader.readAsText(file);
+
+});
+
+function showMessage(msg,color="black"){
+const el = document.getElementById("message");
+el.innerText = msg;
+el.style.color = color;
+}
+
+function decodeImage(){
+
+const rawText =
+document.getElementById("codeBox")
+.value.trim();
+
+if(!rawText){
+showMessage(
+"আগে কোড paste করুন",
+"red"
+);
+return;
+}
+
+try{
+
+let cleaned = rawText;
+
+if(cleaned.includes("base64,")){
+cleaned =
+cleaned.split("base64,")[1];
+}
+
+cleaned =
+cleaned.replace(/\s/g,'');
+
+decodedImage =
+"data:image/jpeg;base64," +
+cleaned;
+
+const img = new Image();
+
+img.onload = function(){
+
+document.getElementById(
+"preview"
+).innerHTML =
+`<img src="${decodedImage}">`;
+
+showMessage(
+"ছবি সফলভাবে decode হয়েছে!",
+"green"
+);
+
+};
+
+img.onerror = function(){
+
+showMessage(
+"এটা valid image code নয়",
+"red"
+);
+
+};
+
+img.src = decodedImage;
+
+}
+catch(err){
+
+showMessage(
+"Decode failed",
+"red"
+);
+
+}
+
+}
+
+function downloadImage(){
+
+if(!decodedImage){
+
+showMessage(
+"আগে image decode করুন",
+"red"
+);
+
+return;
+}
+
+const a =
+document.createElement("a");
+
+a.href = decodedImage;
+a.download = "decoded-image.jpg";
+a.click();
+
+}
+
+function clearAll(){
+
+document.getElementById(
+"codeBox"
+).value = "";
+
+document.getElementById(
+"preview"
+).innerHTML = "";
+
+document.getElementById(
+"message"
+).innerHTML = "";
+
+decodedImage = null;
+
+}
+
+</script>
+
+</body>
+</html>
